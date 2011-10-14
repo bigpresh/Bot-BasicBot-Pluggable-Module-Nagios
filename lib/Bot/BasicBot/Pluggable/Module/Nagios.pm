@@ -139,10 +139,20 @@ sub tick {
         # Group problems by host, ignoring any which we've already reported 
         # recently
         my %service_by_host;
+        service:
         for my $service (@service_statuses) {
             my $service_key = join '_', $service->{host}, $service->{service};
             if (my $last_status = $instance_statuses->{$service_key}) {
-                # Firstly, if it was OK before and still OK now, move on swiftly
+                # If we haven't seen a status for this one before, and it's OK
+                # now, don't spam the channel with it, just set the status to OK
+                # and move on:
+                if ($service->{status} eq 'OK' && !$last_status->{status}) {
+                    $instance_statuses->{$service_key} =
+                        { timestamp => time(), status => $service->{status} };
+                    next service;
+                }
+
+                # If it was OK before and still OK now, move on swiftly
                 next if $last_status->{status} eq 'OK'
                     and $service->{status} eq 'OK';
 
