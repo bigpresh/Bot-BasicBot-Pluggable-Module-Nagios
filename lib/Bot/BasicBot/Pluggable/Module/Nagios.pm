@@ -81,6 +81,7 @@ sub told {
         for my $instance (@$instances) {
             $response .= sprintf "%d : %s as %s for %s\n",
                 $num++,
+                $instance->{url},
                 $instance->{user},
                 join ',', @{ $instance->{channels} };
         }
