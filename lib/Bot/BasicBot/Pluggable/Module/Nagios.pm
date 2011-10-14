@@ -79,7 +79,7 @@ sub told {
         my $response = "I'm currently monitoring the following instances:\n";
         my $num = 0;
         for my $instance (@$instances) {
-            $response .= sprintf "%d : %s as %s for %s",
+            $response .= sprintf "%d : %s as %s for %s\n",
                 $num++,
                 $instance->{user},
                 join ',', @{ $instance->{channels} };
