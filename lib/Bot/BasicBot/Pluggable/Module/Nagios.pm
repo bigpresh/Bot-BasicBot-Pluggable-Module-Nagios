@@ -112,8 +112,6 @@ sub tick {
     return if (time - $last_polled < 60 * 1);
     $last_polled = time;
 
-    warn "Polling.";
-
     my $instances = $self->get('instances') || [];
     instance:
     for my $instance (@$instances) {
@@ -124,7 +122,9 @@ sub tick {
         );
         # Get services in all states except PENDING - we want OK ones, too, so
         # we can easily report problem -> OK transitions
-        $ns->service_state(2);
+        # PENDING 1 OK 2 WARNING 4 UNKNOWN 8 CRITICAL 16
+        # 16 + 8 + 4 + 2 = 30 = OK/WARNING/UNKNOWN/CRITICAL
+        $ns->service_state(30);
     
         # TODO: get host statuses, too; report those, and don't report services
         # on hosts that are down (configurable option, perhaps)
