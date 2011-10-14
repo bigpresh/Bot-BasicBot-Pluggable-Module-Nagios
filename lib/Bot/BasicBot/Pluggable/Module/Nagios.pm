@@ -112,6 +112,8 @@ sub tick {
     return if (time - $last_polled < 60 * 1);
     $last_polled = time;
 
+    warn "Polling.";
+
     my $instances = $self->get('instances') || [];
     instance:
     for my $instance (@$instances) {
@@ -143,23 +145,24 @@ sub tick {
         for my $service (@service_statuses) {
             my $service_key = join '_', $service->{host}, $service->{service};
             if (my $last_status = $instance_statuses->{$service_key}) {
-                # If we haven't seen a status for this one before, and it's OK
-                # now, don't spam the channel with it, just set the status to OK
-                # and move on:
-                if ($service->{status} eq 'OK' && !$last_status->{status}) {
-                    $instance_statuses->{$service_key} =
-                        { timestamp => time(), status => $service->{status} };
-                    next service;
-                }
-
                 # If it was OK before and still OK now, move on swiftly
                 next if $last_status->{status} eq 'OK'
                     and $service->{status} eq 'OK';
 
                 # TODO: make the delay between subsequent wibbles about the same
                 # problem configurable by the user
-                next if $last_status->{status} eq $_->{status}
+                next service if $last_status->{status} eq $_->{status}
                     and time - $last_status->{timestamp} > 60 * 15;
+
+            } else {
+                # We've not seen this one before; if it's 'OK', just remember it
+                # but don't announce it, otherwise we'd send a flood of OK
+                # notifications on first run
+                if ($service->{status} eq 'OK') {
+                    $instance_statuses->{$service_key} =
+                        { timestamp => time(), status => $service->{status} };
+                    next service;
+                }
             }
 
             # Note that we're about to bitch about this one, and add it to
