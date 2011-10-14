@@ -53,7 +53,7 @@ USAGE
 sub told {
     my ($self, $mess) = @_;
 
-    return unless $mess->{addressed} && $mess->{body} =~ s/^nagios\s+//i;
+    return unless $mess->{address} && $mess->{body} =~ s/^nagios\s+//i;
     my ($command, $params) = split /\s+/, $mess->{body}, 2;
     if (lc $command eq 'add') {
         my($url, $user, $pass, $channel_list) = split $params, /\s+/, 4;
