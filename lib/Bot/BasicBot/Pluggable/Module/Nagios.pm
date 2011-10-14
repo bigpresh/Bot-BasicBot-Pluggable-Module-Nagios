@@ -98,7 +98,7 @@ sub told {
     }
 }
 
-my $last_polled;
+my $last_polled = 0;
 my %last_status;
 
 sub tick {
