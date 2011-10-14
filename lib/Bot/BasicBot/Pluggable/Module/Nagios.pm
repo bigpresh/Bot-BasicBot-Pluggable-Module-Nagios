@@ -157,7 +157,7 @@ sub tick {
             $instance_statuses->{$service_key} = { 
                 timestamp => time(), status => $service->{status},
             };
-            push @{ $service_by_host{ $_->{host} } }, $service;
+            push @{ $service_by_host{ $service->{host} } }, $service;
         }
 
         for my $host (sort keys %service_by_host) {
