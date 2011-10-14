@@ -135,7 +135,7 @@ sub tick {
         # Key to use for this instance in %last_status
         my $instance_key = join '_', $instance->{url}, $instance->{user};
         
-        my $instance_statuses = $last_status{$instance_key};
+        my $instance_statuses = $last_status{$instance_key} ||= {};
 
 
         # Group problems by host, ignoring any which we've already reported 
@@ -152,7 +152,7 @@ sub tick {
                 # TODO: make the delay between subsequent wibbles about the same
                 # problem configurable by the user
                 next service if $last_status->{status} eq $service->{status}
-                    and time - $last_status->{timestamp} > 60 * 15;
+                    && (time - $last_status->{timestamp}) > 60 * 15;
 
             } else {
                 # We've not seen this one before; if it's 'OK', just remember it
