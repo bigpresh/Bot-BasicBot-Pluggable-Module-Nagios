@@ -57,6 +57,9 @@ sub told {
     my ($command, $params) = split /\s+/, $mess->{body}, 2;
     if (lc $command eq 'add') {
         my($url, $user, $pass, $channel_list) = split /\s+/, $params, 4;
+        if ($url !~ /^http/i) {
+            return "URL looks invalid!";
+        }
         my @channels = split /\s+|,/, $channel_list;
         my $instances = $self->get('instances') || [];
         push @$instances, {
@@ -88,8 +91,8 @@ sub told {
         if ($num !~ /^\d+$/) {
             return "Usage: nagios del instancenum (e.g. 'nagios del 1')";
         }
-        my $instances = $self->get('instances');
-        if ($instances->[$num]) {
+        my $instances = $self->get('instances') || [];
+        if (!$instances->[$num]) {
             return "No such instance";
         }
         delete $instances->[$num];
