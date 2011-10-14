@@ -56,7 +56,7 @@ sub told {
     return unless $mess->{address} && $mess->{body} =~ s/^nagios\s+//i;
     my ($command, $params) = split /\s+/, $mess->{body}, 2;
     if (lc $command eq 'add') {
-        my($url, $user, $pass, $channel_list) = split $params, /\s+/, 4;
+        my($url, $user, $pass, $channel_list) = split /\s+/, $params, 4;
         my @channels = split /\s+|,/, $channel_list;
         my $instances = $self->get('instances') || [];
         push @$instances, {
