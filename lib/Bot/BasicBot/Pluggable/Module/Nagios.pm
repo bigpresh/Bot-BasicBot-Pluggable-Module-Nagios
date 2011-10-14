@@ -98,15 +98,15 @@ sub told {
     }
 }
 
-my $last_ticked;
+my $last_polled;
 my %last_status;
 
 sub tick {
     my ($self) = @_;
 
     # TODO: allow time between checks to be configurable 
-    return if (time - $last_ticked < 60 * 1);
-    $last_ticked = time;
+    return if (time - $last_polled < 60 * 1);
+    $last_polled = time;
 
     my $instances = $self->get('instances') || [];
     instance:
