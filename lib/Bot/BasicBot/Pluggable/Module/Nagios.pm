@@ -95,7 +95,7 @@ sub told {
         if (!$instances->[$num]) {
             return "No such instance";
         }
-        delete $instances->[$num];
+        splice @$instances, $num;
         $self->set('instances', $instances);
         return "OK, deleted instance $num";
     }
