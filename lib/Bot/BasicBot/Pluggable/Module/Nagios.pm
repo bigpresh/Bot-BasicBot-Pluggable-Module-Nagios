@@ -188,10 +188,11 @@ sub tick {
 
 
         # Group problems by host, ignoring any which we've already reported 
-        # recently
+        # recently, or which are on a host which is down.
         my %service_by_host;
         service:
         for my $service (@service_statuses) {
+            next if $host_down{$service->{host}};
             my $service_key = join '_', $service->{host}, $service->{service};
             if (my $last_status = $instance_statuses->{$service_key}) {
                 # If it was OK before and still OK now, move on swiftly
