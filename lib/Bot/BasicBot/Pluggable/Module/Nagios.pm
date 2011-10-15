@@ -151,8 +151,11 @@ sub tick {
 
                 # TODO: make the delay between subsequent wibbles about the same
                 # problem configurable by the user
-                next service if $last_status->{status} eq $service->{status}
-                    && (time - $last_status->{timestamp}) > 60 * 15;
+                if ($last_status->{status} eq $service->{status}
+                    && time - $last_status->{timestamp} < 60 * 15)
+                {
+                    next service;
+                }
 
             } else {
                 # We've not seen this one before; if it's 'OK', just remember it
