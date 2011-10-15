@@ -22,7 +22,7 @@ Multiple Nagios instances are supported; these could be separate Nagios systems,
 or just the same Nagios install but using different credentials.  As each
 configured instance can have specific target channels defined, this means you
 could have the bot check with the username "development" and report all visible
-channels to the C<#development> channel, then check again with the "sysad"
+problems to the C<#development> channel, then check again with the "sysad"
 username and report problems visible to that user to the C<#sysads> channel.
 
 Actual monitoring is done using L<Nagios::Scrape>, which scrapes the information
