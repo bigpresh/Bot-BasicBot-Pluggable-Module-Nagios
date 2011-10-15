@@ -148,6 +148,7 @@ sub tick {
         my $instance_statuses = $last_status{$instance_key} ||= {};
 
         # Firstly, report host status changes:
+        my @host_reports;
         host:
         for my $host (@all_hosts) {
             if (my $last_status = $instance_statuses->{$host->{host}}) {
@@ -163,15 +164,9 @@ sub tick {
                     next host;
                 }
 
-                # OK, announce that this host is down, and remember that we did
+                # OK, announce that this host is down, and remember that did
                 # so
-                for my $channel (@{ $instance->{channels} }) {
-                    $self->tell($channel, 
-                        "NAGIOS: Host $host->{host} is $host->{status}"
-                    );
-                }
-                $instance_statuses->{$host->{host}} =
-                    { timestamp => time, status => $host->{status} };
+                push @host_reports, $host;
             } else {
                 # We've not seen this one before; if it's 'UP', just remember 
                 # but don't announce it, otherwise we'd send a flood of UP
@@ -180,6 +175,21 @@ sub tick {
                     $instance_statuses->{$host->{host}} =
                         { timestamp => time(), status => $host->{status} };
                     next host;
+                } else {
+                    # First result for this host, but it's down - announce:
+                    push @host_reports, $host;
+                }
+            }
+
+            # Now we've decided if we need to report any hosts, go ahead and
+            # do so, and remember we did
+            for my $host (@host_reports) {
+                for my $channel (@{ $instance->{channels} }) {
+                    $self->tell($channel,
+                        "NAGIOS: Host $host->{host} is $host->{status}"
+                    );
+                    $instance_statuses->{$host->{host}} =
+                        { timestamp => time(), status => $host->{status} };
                 }
             }
         }
