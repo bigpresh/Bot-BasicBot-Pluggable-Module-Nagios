@@ -120,15 +120,25 @@ sub tick {
             password => $instance->{pass},
             url      => $instance->{url},
         );
+
+        # Get a list of all hosts, and assemble a lookup hash so we can
+        # easily look up whether a host is down in order to skip reporting
+        # services
+        $ns->host_state(14); # All hosts, including OK ones
+        my @all_hosts = $ns->get_host_status;
+        my %host_down  = 
+            map  { $_->{host} => 1        } 
+            grep { $_->{status} eq 'DOWN' }
+            @all_hosts;
+
+
         # Get services in all states except PENDING - we want OK ones, too, so
         # we can easily report problem -> OK transitions
         # PENDING 1 OK 2 WARNING 4 UNKNOWN 8 CRITICAL 16
         # 16 + 8 + 4 + 2 = 30 = OK/WARNING/UNKNOWN/CRITICAL
+        # TODO: make state filter configurable
         $ns->service_state(30);
     
-        # TODO: get host statuses, too; report those, and don't report services
-        # on hosts that are down (configurable option, perhaps)
-        # TODO: allow filtering by status (Nagios::Scrape can do that for us)
         my @service_statuses = $ns->get_service_status;
 
 
@@ -136,6 +146,45 @@ sub tick {
         my $instance_key = join '_', $instance->{url}, $instance->{user};
         
         my $instance_statuses = $last_status{$instance_key} ||= {};
+
+        # Firstly, report host status changes:
+        host:
+        for my $host (@all_hosts) {
+            if (my $last_status = $instance_statuses->{$host->{host}}) {
+                # If it was UP before and is still UP, move on swiftly
+                next if $last_status->{status} eq 'UP'
+                    and $host->{status} eq 'UP';
+
+                # If we've reported it as down recently, don't do so again yet
+                # TODO: make delay configurable
+                if ($last_status->{status} eq $host->{status}
+                    && time - $last_status->{timestamp} < 60 * 15)
+                {
+                    next host;
+                }
+
+                # OK, announce that this host is down, and remember that we did
+                # so
+                for my $channel (@{ $instance->{channels} }) {
+                    $self->tell($channel, 
+                        "NAGIOS: Host $host->{host} is $host->{status}"
+                    );
+                }
+                $instance_statuses->{$host->{host}} =
+                    { timestamp => time, status => $host->{status} };
+            } else {
+                # We've not seen this one before; if it's 'UP', just remember 
+                # but don't announce it, otherwise we'd send a flood of UP
+                # notifications on first run
+                if ($host->{status} eq 'UP') {
+                    $instance_statuses->{$host->{host}} =
+                        { timestamp => time(), status => $host->{status} };
+                    next service;
+                }
+            }
+        }
+
+
 
 
         # Group problems by host, ignoring any which we've already reported 
