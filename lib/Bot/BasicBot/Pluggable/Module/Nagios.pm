@@ -179,7 +179,7 @@ sub tick {
                 if ($host->{status} eq 'UP') {
                     $instance_statuses->{$host->{host}} =
                         { timestamp => time(), status => $host->{status} };
-                    next service;
+                    next host;
                 }
             }
         }
