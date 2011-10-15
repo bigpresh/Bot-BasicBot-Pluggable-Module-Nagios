@@ -300,6 +300,12 @@ It would make sense to be able to configure the bot to only report problems
 during hours in which staff/volunteers are likely to be awake and paying
 attention to the IRC channel.
 
+=item * Configurable report templates
+
+It would be nice to be able to configure the format used for report messages -
+perhaps including colour codes to colourise elements of the message, where the
+channel allows it and users clients support it.
+
 =back
 
 =head1 AUTHOR
