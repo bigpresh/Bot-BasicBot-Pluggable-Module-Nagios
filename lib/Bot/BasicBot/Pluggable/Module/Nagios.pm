@@ -18,6 +18,18 @@ Bot::BasicBot::Pluggable::Module::Nagios - report Nagios alerts to IRC
 A module for IRC bots powered by L<Bot::BasicBot::Pluggable> to monitor a Nagios
 install and report alerts to IRC.
 
+Multiple Nagios instances are supported; these could be separate Nagios systems,
+or just the same Nagios install but using different credentials.  As each
+configured instance can have specific target channels defined, this means you
+could have the bot check with the username "development" and report all visible
+channels to the C<#development> channel, then check again with the "sysad"
+username and report problems visible to that user to the C<#sysads> channel.
+
+Actual monitoring is done using L<Nagios::Scrape>, which scrapes the information
+from the C<status.cgi> script which powers Nagios' web interface.  This means
+that, assuming your Nagios setup is configured to be viewable over the web, you
+need no further setup to allow the bot to monitor it.
+
 
 =head1 SYNOPSIS
 
@@ -34,6 +46,9 @@ In a direct message to the bot:
           .. 1 : http://example.com/cgi-bin/status.cgi as dave for #chan
     <user> nagios del 1
     <bot> OK, deleted instance 1
+
+(You can supply a list of channel names separated by commas, if you want reports
+from a given instance to be announced to more than one channel.)
 
 =cut
 
@@ -250,11 +265,61 @@ sub tick {
 
 
 
+=head1 TODO
 
+Plenty of improvements are planned, including:
+
+=over 4
+
+=item * Configurable check / reporting intervals
+
+It should be possible to configure the interval between polling the Nagios
+instances, and the time between repeated notifications of the same problem.
+
+=item * Wait for multiple checks before reporting
+
+At the moment, service problems are announced as soon as they become visible on
+the Nagios web interface, I believe.  It should be possible to ignore them until
+multiple subsequent checks have failed (e.g. the C<Attempt> column in the Nagios
+web interface is e.g. C<4/4>).  I will need to submit a patch upstream to
+L<Nagios::Scrape> to make this possible, however.
+
+=item * Filtering services
+
+It should be possible to provide a pattern to match services which should not be
+announced, to stop repeated announcements about problematic services
+
+=item * Acknowledging problems
+
+It should probably be possible to acknowledge a reported problem, preventing
+repeated reports of the same service/host in the same state.
+
+=item * Configurable reporting hours
+
+It would make sense to be able to configure the bot to only report problems
+during hours in which staff/volunteers are likely to be awake and paying
+attention to the IRC channel.
+
+=back
 
 =head1 AUTHOR
 
 David Precious, C<< <davidp at preshweb.co.uk> >>
+
+=head1 CONTRIBUTING
+
+This module is developed on GitHub:
+
+L<https://github.com/bigpresh/Bot-BasicBot-Pluggable-Module-Nagios>
+
+Pull requests / suggestions / bug reports are welcomed.
+
+If you feel like it, even a "I'm using this and find it useful" mail to
+C<davidp@preshweb.co.uk> would be appreciated - it's nice to know when people
+find your work useful.
+
+(Reviews on cpanratings and/or ++'s on MetaCPAN are also very welcome.)
+
 
 =head1 BUGS
 
