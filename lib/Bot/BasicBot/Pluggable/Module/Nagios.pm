@@ -3,7 +3,7 @@ package Bot::BasicBot::Pluggable::Module::Nagios;
 use warnings;
 use strict;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 use base 'Bot::BasicBot::Pluggable::Module';
 
@@ -218,6 +218,12 @@ sub tick {
         service:
         for my $service (@service_statuses) {
             next if $host_down{$service->{host}};
+
+            # See how many check attempts have found the service in this status;
+            # if it's not enough for Nagios to send alerts, don't alert on IRC.
+            my ($attempt, $max_attempts) = split '/', $service->{attempts};
+            next service if $attempt < $max_attempts;
+
             my $service_key = join '_', $service->{host}, $service->{service};
             if (my $last_status = $instance_statuses->{$service_key}) {
                 # If it was OK before and still OK now, move on swiftly
@@ -275,14 +281,6 @@ Plenty of improvements are planned, including:
 
 It should be possible to configure the interval between polling the Nagios
 instances, and the time between repeated notifications of the same problem.
-
-=item * Wait for multiple checks before reporting
-
-At the moment, service problems are announced as soon as they become visible on
-the Nagios web interface, I believe.  It should be possible to ignore them until
-multiple subsequent checks have failed (e.g. the C<Attempt> column in the Nagios
-web interface is e.g. C<4/4>).  I will need to submit a patch upstream to
-L<Nagios::Scrape> to make this possible, however.
 
 =item * Filtering services
 

@@ -1,5 +1,9 @@
 Revision history for Bot-BasicBot-Pluggable-Module-Nagios
 
-0.01    Date/time
+0.02    2011-10-18
+        Don't alarm on initial check attempts - e.g. check 1/4, don't alarm
+        until 4/4.  Should avoid alarming for brief problems.
+
+0.01    2011-10-15
         First version, released on an unsuspecting world.
 
