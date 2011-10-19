@@ -3,7 +3,7 @@ package Bot::BasicBot::Pluggable::Module::Nagios;
 use warnings;
 use strict;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 use base 'Bot::BasicBot::Pluggable::Module';
 
@@ -221,8 +221,10 @@ sub tick {
 
             # See how many check attempts have found the service in this status;
             # if it's not enough for Nagios to send alerts, don't alert on IRC.
+            # Don't do this if the status is "OK", though, as "OK" services
+            # always show as e.g. 1/4.
             my ($attempt, $max_attempts) = split '/', $service->{attempts};
-            next service if $attempt < $max_attempts;
+            next service if $service->{status} ne 'OK' &&  $attempt < $max_attempts;
 
             my $service_key = join '_', $service->{host}, $service->{service};
             if (my $last_status = $instance_statuses->{$service_key}) {
