@@ -165,11 +165,11 @@ sub told {
                 description => "List of statuses we should notify for"
                     . " (default: CRITICAL, OK)",
                 validator   => sub {
-                    my @statuses = split /(\s|,)+/, uc shift;
+                    my @statuses = split /[\s,]+/, uc shift;
                     return unless @statuses;
                     return if 
                         grep { !/^(OK|WARNING|CRITICAL|UNKNOWN)$/ } @statuses;
-                    return 1;
+                    return \@statuses;
                 },
             },
         );
