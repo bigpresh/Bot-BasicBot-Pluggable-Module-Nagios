@@ -121,18 +121,43 @@ sub told {
     if (lc $command eq 'set') {
         my ($setting, $value) = split /\s+/, $params, 2;
         $setting = lc $setting;
+        
+        # Validator for durations, which recognises e.g. 30m and turns into
+        # seconds
+        my $validate_duration = sub {
+            my $value = lc shift;
+            if (my($num,$unit) = $value =~ m{^
+                (\d+)
+                (
+                    s(?:ecs?)?
+                    |
+                    m(?:mins?)?
+                    |
+                    h(?:hours?)?
+                )?
+            $}x) {
+                my $multiplier = {
+                    s => 1,
+                    m => 60,
+                    h => 60 * 60,
+                }->{$unit} || 1;
+                return $num * $multiplier;
+            } else {
+                return;
+            }
+        };
 
         # Declare the settings we accept, what they should look like, and their
         # description
         my %valid_settings = (
             poll_interval => {
                 description => "Interval between polls to Nagios in seconds",
-                validator   => qr/^\d+$/,
+                validator   => $validate_duration,
             },
             repeat_delay => {
                 description => "Time between repeated notifications "
                     . "of the same issue in seconds",
-                validator   => qr/^\d+$/,
+                validator   => $validate_duration,
             },
             report_statuses => {
                 description => "List of statuses we should notify for"
@@ -158,19 +183,20 @@ sub told {
             return $reply;
         }
 
+        my $validator = $valid_settings{$setting}->{validator};
+        if (!$validator) {
+            return sprintf "Unknown setting '%s' (known settings: %s)",
+                $setting,
+                keys %valid_settings;
+        }
 
-        if (my $validator = $valid_settings{$setting}->{validator}) {
-            if (ref($validator) eq 'Regexp' && $value !~ $validator) {
-                return "'$value' is not a valid value for $setting"
-                    . ", must match $validator";
-            } elsif (ref $validator eq 'CODE' && !$validator->($value)) {
-                return "'$value' is not a valid value for $setting";
-            } else {
-                $self->set($setting, $value);
-                return "OK, $setting set to '$value'";
-            }
+        # The validator will return the value (possibly canonicalised) if it was
+        # acceptable, or undef if not:
+        if (defined(my $valid_value = $validator->($value))) {
+            $self->set($setting, $valid_value);
+            return "OK, set $setting to '$valid_value'";
         } else {
-            return "Unknown setting '$setting'";
+            return "Value '$value' is not valid for setting $setting";
         }
     }
 }
