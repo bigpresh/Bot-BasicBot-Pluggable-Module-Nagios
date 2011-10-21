@@ -298,10 +298,10 @@ sub tick {
                 next if $last_status->{status} eq 'OK'
                     and $service->{status} eq 'OK';
 
-                # TODO: make the delay between subsequent wibbles about the same
-                # problem configurable by the user
+                # If we've already seen it in this status, don't report it again
+                # until the $repeat_delay is up
                 if ($last_status->{status} eq $service->{status}
-                    && time - $last_status->{timestamp} < 60 * 15)
+                    && time - $last_status->{timestamp} < $repeat_delay)
                 {
                     next service;
                 }
