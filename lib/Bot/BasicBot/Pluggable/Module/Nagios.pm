@@ -60,6 +60,9 @@ A module to report Nagios alerts to IRC channels.
    nagios add http://example.com/cgi-bin/status.cgi username password #chan
    nagios list
    nagios del 1
+   nagios set setting_name value
+
+Say "nagios set" with no setting name for a list of valid settings.
 
 Full help is available at http://p3rl.org/Bot::BasicBot::Pluggable::Module::Nagios
 USAGE
@@ -115,6 +118,48 @@ sub told {
         $self->set('instances', $instances);
         return "OK, deleted instance $num";
     }
+    if (lc $command eq 'set') {
+        my ($setting, $value) = split /\s+/, $params, 2;
+        $setting = lc $setting;
+
+        # Declare the settings we accept, what they should look like, and their
+        # description
+        my %valid_settings = (
+            poll_interval => {
+                description => "Interval between polls to Nagios in seconds",
+                validator   => qr/^\d+$/,
+            },
+            repeat_delay => {
+                description => "Time between repeated notifications "
+                    . "of the same issue in seconds",
+                validator   => qr/^\d+$/,
+            },
+        );
+
+        # If we were called without a setting name, reply with the settings
+        # which are valid:
+        if (!$setting) {
+            my $reply = "Valid settings are:\n";
+            for my $setting (keys %valid_settings) {
+                $reply .= sprintf "%s (%s)\n",
+                    $setting, $valid_settings{$setting}->{description};
+            }
+            return $reply;
+        }
+
+
+        if (my $valid_re = $valid_settings{$setting}->{validator}) {
+            if ($value !~ $valid_re) {
+                return "'$value' is not a valid value for $setting"
+                    . ", must match $valid_re";
+            } else {
+                $self->set($setting, $value);
+                return "OK, $setting set to '$value'";
+            }
+        } else {
+            return "Unknown setting '$setting'";
+        }
+    }
 }
 
 my $last_polled = 0;
@@ -123,8 +168,9 @@ my %last_status;
 sub tick {
     my ($self) = @_;
 
-    # TODO: allow time between checks to be configurable 
-    return if (time - $last_polled < 60 * 1);
+    my $repeat_delay = $self->get('repeat_delay') || 15 * 60;
+    my $poll_delay = $self->get('poll_interval') || 120;
+    return if (time - $last_polled < $poll_delay);
     $last_polled = time;
 
     my $instances = $self->get('instances') || [];
@@ -172,9 +218,8 @@ sub tick {
                     and $host->{status} eq 'UP';
 
                 # If we've reported it as down recently, don't do so again yet
-                # TODO: make delay configurable
                 if ($last_status->{status} eq $host->{status}
-                    && time - $last_status->{timestamp} < 60 * 15)
+                    && time - $last_status->{timestamp} < $repeat_delay)
                 {
                     next host;
                 }
