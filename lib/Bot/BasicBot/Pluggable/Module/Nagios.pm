@@ -348,16 +348,6 @@ Plenty of improvements are planned, including:
 
 =over 4
 
-=item * Configurable check / reporting intervals
-
-It should be possible to configure the interval between polling the Nagios
-instances, and the time between repeated notifications of the same problem.
-
-=item * Filtering services
-
-It should be possible to provide a pattern to match services which should not be
-announced, to stop repeated announcements about problematic services
-
 =item * Acknowledging problems
 
 It should probably be possible to acknowledge a reported problem, preventing
