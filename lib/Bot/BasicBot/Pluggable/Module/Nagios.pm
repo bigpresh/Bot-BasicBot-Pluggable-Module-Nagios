@@ -149,14 +149,16 @@ sub told {
 
         # Declare the settings we accept, what they should look like, and their
         # description
+        my $duration_help = " (in seconds, or with unit, e.g. 60, 3m, 5h)";
         my %valid_settings = (
             poll_interval => {
-                description => "Interval between polls to Nagios in seconds",
+                description => "Interval between polls to Nagios"
+                    . $duration_help,
                 validator   => $validate_duration,
             },
             repeat_delay => {
                 description => "Time between repeated notifications "
-                    . "of the same issue in seconds",
+                    . "of the same issue" . $duration_help,
                 validator   => $validate_duration,
             },
             report_statuses => {
