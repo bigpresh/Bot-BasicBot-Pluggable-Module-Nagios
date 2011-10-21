@@ -134,6 +134,17 @@ sub told {
                     . "of the same issue in seconds",
                 validator   => qr/^\d+$/,
             },
+            report_statuses => {
+                description => "List of statuses we should notify for"
+                    . " (default: CRITICAL, OK)",
+                validator   => sub {
+                    my @statuses = split /(\s|,)+/, uc shift;
+                    return unless @statuses;
+                    return if 
+                        grep { !/^(OK|WARNING|CRITICAL|UNKNOWN)$/ } @statuses;
+                    return 1;
+                },
+            },
         );
 
         # If we were called without a setting name, reply with the settings
@@ -148,10 +159,12 @@ sub told {
         }
 
 
-        if (my $valid_re = $valid_settings{$setting}->{validator}) {
-            if ($value !~ $valid_re) {
+        if (my $validator = $valid_settings{$setting}->{validator}) {
+            if (ref($validator) eq 'Regexp' && $value !~ $validator) {
                 return "'$value' is not a valid value for $setting"
-                    . ", must match $valid_re";
+                    . ", must match $validator";
+            } elsif (ref $validator eq 'CODE' && !$validator->($value)) {
+                return "'$value' is not a valid value for $setting";
             } else {
                 $self->set($setting, $value);
                 return "OK, $setting set to '$value'";
@@ -172,6 +185,13 @@ sub tick {
     my $poll_delay = $self->get('poll_interval') || 120;
     return if (time - $last_polled < $poll_delay);
     $last_polled = time;
+
+    # Find out what statuses we should report; do this here, so it's ready for
+    # use in the loop later (we don't want to re-do it for every service :) )
+    my $report_statuses = $self->get('report_statuses')
+        || [ qw( CRITICAL WARNING OK ) ];
+    my %should_report = map { $_ => 1 } @$report_statuses;
+
 
     my $instances = $self->get('instances') || [];
     instance:
@@ -264,6 +284,7 @@ sub tick {
         for my $service (@service_statuses) {
             next if $host_down{$service->{host}};
 
+
             # See how many check attempts have found the service in this status;
             # if it's not enough for Nagios to send alerts, don't alert on IRC.
             # Don't do this if the status is "OK", though, as "OK" services
@@ -295,6 +316,9 @@ sub tick {
                     next service;
                 }
             }
+
+            # See if it's a status we should report.  
+            next service if !$should_report{ $service->{status} };
 
             # Note that we're about to bitch about this one, and add it to
             # %service_by_host ready for reporting
