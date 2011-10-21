@@ -196,7 +196,9 @@ sub told {
         # acceptable, or undef if not:
         if (defined(my $valid_value = $validator->($value))) {
             $self->set($setting, $valid_value);
-            return "OK, set $setting to '$valid_value'";
+            my $show_value = ref $valid_value eq 'ARRAY' 
+                ? join(',', @$valid_value) : $valid_value;
+            return "OK, set $setting to '$show_value'";
         } else {
             return "Value '$value' is not valid for setting $setting";
         }

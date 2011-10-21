@@ -1,5 +1,7 @@
 Revision history for Bot-BasicBot-Pluggable-Module-Nagios
 
+        Bugfix: don't say e.g. "OK, set report_statuses to 'ARRAY(0x2669fc8)"
+
 0.04    2011-10-21
         Configurable repeat_delay, poll_interval and report_statuses settings.
 
