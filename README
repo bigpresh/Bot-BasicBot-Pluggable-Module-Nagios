@@ -9,7 +9,7 @@ DESCRIPTION
     systems, or just the same Nagios install but using different
     credentials. As each configured instance can have specific target
     channels defined, this means you could have the bot check with the
-    username "development" and report all visible channels to the
+    username "development" and report all visible problems to the
     `#development' channel, then check again with the "sysad" username and
     report problems visible to that user to the `#sysads' channel.
 
@@ -39,24 +39,6 @@ SYNOPSIS
 
 TODO
     Plenty of improvements are planned, including:
-
-    * Configurable check / reporting intervals
-        It should be possible to configure the interval between polling the
-        Nagios instances, and the time between repeated notifications of the
-        same problem.
-
-    * Wait for multiple checks before reporting
-        At the moment, service problems are announced as soon as they become
-        visible on the Nagios web interface, I believe. It should be
-        possible to ignore them until multiple subsequent checks have failed
-        (e.g. the `Attempt' column in the Nagios web interface is e.g.
-        `4/4'). I will need to submit a patch upstream to Nagios::Scrape to
-        make this possible, however.
-
-    * Filtering services
-        It should be possible to provide a pattern to match services which
-        should not be announced, to stop repeated announcements about
-        problematic services
 
     * Acknowledging problems
         It should probably be possible to acknowledge a reported problem,
