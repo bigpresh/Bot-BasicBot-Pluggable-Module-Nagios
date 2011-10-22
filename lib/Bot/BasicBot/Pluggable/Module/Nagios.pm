@@ -331,7 +331,7 @@ sub tick {
             next if $host_down{$service->{host}};
 
             # Skip it if we should be filtering it out
-            next if $filter_re && $service !~ $filter_re;
+            next if $filter_re && $service->{service} !~ $filter_re;
 
             # See how many check attempts have found the service in this status;
             # if it's not enough for Nagios to send alerts, don't alert on IRC.
