@@ -172,6 +172,20 @@ sub told {
                     return \@statuses;
                 },
             },
+            filter_services => {
+                description => "A regex to match services which"
+                    . " should be ignored",
+                validator => sub {
+                    my $in = shift;
+                    my $re;
+                    eval {
+                        $re = qr/$in/;
+                    };
+                    return if $@;
+                    return $in;
+                },
+            },
+                    
         );
 
         # If we were called without a setting name, reply with the settings
@@ -304,8 +318,10 @@ sub tick {
             }
         }
 
-
-
+        # Fetch & compile the service filtering regex once, rather than once for
+        # each service:
+        my $filter_re = $self->get('filter_services') || '';
+        $filter_re = qr($filter_re) if $filter_re;
 
         # Group problems by host, ignoring any which we've already reported 
         # recently, or which are on a host which is down.
@@ -314,6 +330,8 @@ sub tick {
         for my $service (@service_statuses) {
             next if $host_down{$service->{host}};
 
+            # Skip it if we should be filtering it out
+            next if $filter_re && $service !~ $filter_re;
 
             # See how many check attempts have found the service in this status;
             # if it's not enough for Nagios to send alerts, don't alert on IRC.
