@@ -1,5 +1,8 @@
 Revision history for Bot-BasicBot-Pluggable-Module-Nagios
 
+        New 'filter_services' option, to take a regex of services which should
+        be ignored.
+
         Bugfix: don't say e.g. "OK, set report_statuses to 'ARRAY(0x2669fc8)"
 
 0.04    2011-10-21
