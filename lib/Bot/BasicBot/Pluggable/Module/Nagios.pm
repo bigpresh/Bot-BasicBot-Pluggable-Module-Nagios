@@ -203,7 +203,7 @@ sub told {
         if (!$validator) {
             return sprintf "Unknown setting '%s' (known settings: %s)",
                 $setting,
-                keys %valid_settings;
+                join ',', keys %valid_settings;
         }
 
         # The validator will return the value (possibly canonicalised) if it was
