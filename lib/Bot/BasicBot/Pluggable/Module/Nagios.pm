@@ -396,6 +396,15 @@ Plenty of improvements are planned, including:
 
 =over 4
 
+=item * Better documentation
+
+I need to improve the module's documentation.  For now, extra information is
+available by saying <help nagios> to the bot on IRC, or C<nagios set> with no
+setting name for a list of valid settings with descriptions.
+
+I'd rather work out a good way to auto-generate documentation from the settings
+definitions in the code in order to make sure the docs stay in sync.
+
 =item * Acknowledging problems
 
 It should probably be possible to acknowledge a reported problem, preventing
