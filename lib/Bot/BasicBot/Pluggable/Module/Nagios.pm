@@ -253,7 +253,9 @@ sub tick {
         # easily look up whether a host is down in order to skip reporting
         # services
         $ns->host_state(14); # All hosts, including OK ones
-        my @all_hosts = $ns->get_host_status;
+        my @all_hosts;
+        # Nagios::Scrape will die() on error
+        eval { @all_hosts = $ns->get_host_status; };
         my %host_down  = 
             map  { $_->{host} => 1        } 
             grep { $_->{status} eq 'DOWN' }
