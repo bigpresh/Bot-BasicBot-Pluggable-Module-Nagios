@@ -163,7 +163,7 @@ sub told {
             },
             report_statuses => {
                 description => "List of statuses we should notify for"
-                    . " (default: CRITICAL, OK)",
+                    . " (default: CRITICAL, WARNING, OK)",
                 validator   => sub {
                     my @statuses = split /[\s,]+/, uc shift;
                     return unless @statuses;
