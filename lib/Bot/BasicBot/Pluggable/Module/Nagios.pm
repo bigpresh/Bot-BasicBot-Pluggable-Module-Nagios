@@ -163,12 +163,14 @@ sub told {
             },
             report_statuses => {
                 description => "List of statuses we should notify for"
-                    . " (default: CRITICAL, WARNING, OK)",
+                    . " (default: CRITICAL, WARNING, OK, UPDATE_FAIL)",
                 validator   => sub {
                     my @statuses = split /[\s,]+/, uc shift;
                     return unless @statuses;
                     return if 
-                        grep { !/^(OK|WARNING|CRITICAL|UNKNOWN)$/ } @statuses;
+                        grep { 
+                            !/^(OK|WARNING|CRITICAL|UNKNOWN|UPDATE_FAIL)$/
+                        } @statuses;
                     return \@statuses;
                 },
             },
@@ -221,6 +223,7 @@ sub told {
 
 my $last_polled = 0;
 my %last_status;
+my %last_update_failure;
 
 sub tick {
     my ($self) = @_;
@@ -233,7 +236,7 @@ sub tick {
     # Find out what statuses we should report; do this here, so it's ready for
     # use in the loop later (we don't want to re-do it for every service :) )
     my $report_statuses = $self->get('report_statuses')
-        || [ qw( CRITICAL WARNING OK ) ];
+        || [ qw( CRITICAL WARNING OK UPDATE_FAIL ) ];
     my %should_report = map { $_ => 1 } @$report_statuses;
 
 
@@ -255,6 +258,24 @@ sub tick {
             map  { $_->{host} => 1        } 
             grep { $_->{status} eq 'DOWN' }
             @all_hosts;
+
+        # First, if we failed to fetch any host statuses, alert if UPDATE_FAIL
+        # is enabled
+        if (!@all_hosts && $should_report{UPDATE_FAIL}) {
+            my $instance_name = join "@", @$instance{qw(user url)};
+            if (time - $last_update_failure{$instance_name}
+                > $repeat_delay)
+            {
+                for my $channel (@{ $instance->{channels} }) {
+                    $self->tell(
+                        $channel,
+                        "NAGIOS: Update failure for$instance_name",
+                    );
+                }
+            }
+            $last_update_failure{$instance_name} = time;
+            next instance;
+        }
 
 
         # Get services in all states except PENDING - we want OK ones, too, so
