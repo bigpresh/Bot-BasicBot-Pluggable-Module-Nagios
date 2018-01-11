@@ -575,7 +575,7 @@ L<http://search.cpan.org/dist/Bot-BasicBot-Pluggable-Module-Nagios/>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2011 David Precious.
+Copyright 2011-2017 David Precious.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
