@@ -233,6 +233,15 @@ sub tick {
     return if (time - $last_polled < $poll_delay);
     $last_polled = time;
 
+    # OK, time to poll Nagios and report stuff.
+    $self->check_nagios;
+}
+
+sub check_nagios {
+    my ($self) = @_;
+
+    my $repeat_delay = $self->get('repeat_delay') || 15 * 60;
+
     # Find out what statuses we should report; do this here, so it's ready for
     # use in the loop later (we don't want to re-do it for every service :) )
     my $report_statuses = $self->get('report_statuses')
