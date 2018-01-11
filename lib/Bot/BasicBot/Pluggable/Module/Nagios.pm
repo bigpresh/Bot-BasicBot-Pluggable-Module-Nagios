@@ -237,10 +237,79 @@ sub tick {
     $self->check_nagios;
 }
 
+sub instance_name {
+    my ($self, $instance) = @_;
+    return join "@", @$instance{qw(user url)};
+}
+
+# Polls the specified Nagios instance and returns all host and service
+# statuses.  Returns a hashref with keys hosts, services, and possibly
+# error, if there was one.
+sub poll_instance {
+    my ($self, $instance) = @_;
+
+    my $ns = Nagios::Scrape->new(
+        username => $instance->{user},
+        password => $instance->{pass},
+        url      => $instance->{url},
+    );
+
+    # Get a list of all hosts, and assemble a lookup hash so we can
+    # easily look up whether a host is down in order to skip reporting
+    # services
+    $ns->host_state(14); # All hosts, including OK ones
+    my @all_hosts;
+    # Nagios::Scrape will die() on error
+    eval { @all_hosts = $ns->get_host_status; 1 };
+
+    if (my $eval_error = $@) {
+        my $error = sprintf "Failed to poll hosts on %s - %s",
+            $self->instance_name($instance), $eval_error;
+        warn $error;
+        return { error => $error };
+    }
+
+    if (!@all_hosts) {
+        my $error = "No hosts returned for " . $self->instance_name($instance);
+        warn $error;
+        return { error => $error };
+    }
+
+    # Get services in all states except PENDING - we want OK ones, too, so
+    # we can easily report problem -> OK transitions
+    # PENDING 1 OK 2 WARNING 4 UNKNOWN 8 CRITICAL 16
+    # 16 + 8 + 4 + 2 = 30 = OK/WARNING/UNKNOWN/CRITICAL
+    # TODO: make state filter configurable
+    $ns->service_state(30);
+
+    my @service_statuses;
+    eval { @service_statuses = $ns->get_service_status; };
+    if (my $eval_error = $@) {
+        my $error = sprintf "Failed to poll services on %s - %s",
+            $self->instance_name($instance), $eval_error;
+        warn $error;
+        return { error => $error };
+    }
+
+    if (!@service_statuses) {
+        my $error = "No services returned for "
+            . $self->instance_name($instance);
+        warn $error;
+        return { error => $error };
+    }
+
+    # OK, looks good, return the service and host statuses we found.
+    return {
+        services => \@service_statuses,
+        hosts    => \@all_hosts,
+    };
+}
+
 sub check_nagios {
     my ($self) = @_;
 
     my $repeat_delay = $self->get('repeat_delay') || 15 * 60;
+
 
     # Find out what statuses we should report; do this here, so it's ready for
     # use in the loop later (we don't want to re-do it for every service :) )
@@ -252,62 +321,40 @@ sub check_nagios {
     my $instances = $self->get('instances') || [];
     instance:
     for my $instance (@$instances) {
-        my $ns = Nagios::Scrape->new(
-            username => $instance->{user},
-            password => $instance->{pass},
-            url      => $instance->{url},
-        );
+        my $instance_name = $self->instance_name($instance);
+        my $result = $self->poll_instance($instance);
 
-        # Get a list of all hosts, and assemble a lookup hash so we can
-        # easily look up whether a host is down in order to skip reporting
-        # services
-        $ns->host_state(14); # All hosts, including OK ones
-        my @all_hosts;
-        # Nagios::Scrape will die() on error
-        eval { @all_hosts = $ns->get_host_status; };
-        my %host_down  = 
-            map  { $_->{host} => 1        } 
-            grep { $_->{status} eq 'DOWN' }
-            @all_hosts;
-
-        # First, if we failed to fetch any host statuses, alert if UPDATE_FAIL
-        # is enabled
-        if (!@all_hosts && $should_report{UPDATE_FAIL}) {
-            my $instance_name = join "@", @$instance{qw(user url)};
+        # First, if there was an error polling this instance, report it and move
+        # on:
+        if ($result->{error} && $should_report{UPDATE_FAIL}) {
+            my $instance_name = $self->instance_name($instance);
             if (time - $last_update_failure{$instance_name}
                 > $repeat_delay)
             {
                 for my $channel (@{ $instance->{channels} }) {
                     $self->tell(
                         $channel,
-                        "NAGIOS: Update failure for $instance_name",
+                        "NAGIOS: Update failure for $instance_name: "
+                            . $result->{error}
                     );
                 }
             }
             $last_update_failure{$instance_name} = time;
             next instance;
         }
-
-
-        # Get services in all states except PENDING - we want OK ones, too, so
-        # we can easily report problem -> OK transitions
-        # PENDING 1 OK 2 WARNING 4 UNKNOWN 8 CRITICAL 16
-        # 16 + 8 + 4 + 2 = 30 = OK/WARNING/UNKNOWN/CRITICAL
-        # TODO: make state filter configurable
-        $ns->service_state(30);
-    
-        my @service_statuses = $ns->get_service_status;
-
-
-        # Key to use for this instance in %last_status
-        my $instance_key = join '_', $instance->{url}, $instance->{user};
         
-        my $instance_statuses = $last_status{$instance_key} ||= {};
+        my %host_down  = 
+            map  { $_->{host} => 1        } 
+            grep { $_->{status} eq 'DOWN' }
+            @{ $result->{hosts} };
+
+
+        my $instance_statuses = $last_status{$instance_name} ||= {};
 
         # Firstly, report host status changes:
         my @host_reports;
         host:
-        for my $host (@all_hosts) {
+        for my $host (@{ $result->{hosts} }) {
             if (my $last_status = $instance_statuses->{$host->{host}}) {
                 # If it was UP before and is still UP, move on swiftly
                 next if $last_status->{status} eq 'UP'
@@ -320,8 +367,7 @@ sub check_nagios {
                     next host;
                 }
 
-                # OK, announce that this host is down, and remember that did
-                # so
+                # OK, we need to announce that this host is down
                 push @host_reports, $host;
             } else {
                 # We've not seen this one before; if it's 'UP', just remember 
@@ -359,7 +405,7 @@ sub check_nagios {
         # recently, or which are on a host which is down.
         my %service_by_host;
         service:
-        for my $service (@service_statuses) {
+        for my $service (@{ $result->{services} }) {
             next if $host_down{$service->{host}};
 
             # Skip it if we should be filtering it out
