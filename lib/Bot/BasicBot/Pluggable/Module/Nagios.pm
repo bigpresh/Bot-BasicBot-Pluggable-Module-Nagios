@@ -280,7 +280,7 @@ sub check_nagios {
                 for my $channel (@{ $instance->{channels} }) {
                     $self->tell(
                         $channel,
-                        "NAGIOS: Update failure for$instance_name",
+                        "NAGIOS: Update failure for $instance_name",
                     );
                 }
             }
