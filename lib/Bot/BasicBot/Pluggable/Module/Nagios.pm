@@ -80,12 +80,22 @@ sub told {
         }
         my @channels = split /\s+|,/, $channel_list;
         my $instances = $self->get('instances') || [];
-        push @$instances, {
+
+        my $instance = {
             url      => $url,
             user     => $user,
             pass     => $pass,
             channels => \@channels,
         };
+
+        my $poll_result = $self->poll_instance($instance);
+        if ($poll_result->{error}) {
+            my $instance_name = $self->instance_name($instance);
+            return "Failed to poll $instance_name - "
+                . $poll_result->{error} . " - not adding it";
+        }
+
+        push @$instances, $instance;
         $self->set('instances' => $instances);
         return "OK, added Nagios instance to monitor";
     }
