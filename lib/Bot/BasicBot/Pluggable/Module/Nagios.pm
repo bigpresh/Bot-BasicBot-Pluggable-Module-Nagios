@@ -57,12 +57,12 @@ sub help {
     return <<USAGE;
 A module to report Nagios alerts to IRC channels.
 
-   nagios add http://example.com/cgi-bin/status.cgi username password #chan
-   nagios list
-   nagios del 1
-   nagios set setting_name value
+   !nagios add http://example.com/cgi-bin/status.cgi username password #chan
+   !nagios list
+   !nagios del 1
+   !nagios set setting_name value
 
-Say "nagios set" with no setting name for a list of valid settings.
+Say "!nagios set" with no setting name for a list of valid settings.
 
 Full help is available at http://p3rl.org/Bot::BasicBot::Pluggable::Module::Nagios
 USAGE
@@ -71,7 +71,7 @@ USAGE
 sub told {
     my ($self, $mess) = @_;
 
-    return unless $mess->{address} && $mess->{body} =~ s/^nagios\s+//i;
+    return unless $mess->{address} && $mess->{body} =~ s/^!nagios\s+//i;
     my ($command, $params) = split /\s+/, $mess->{body}, 2;
     if (lc $command eq 'add') {
         my($url, $user, $pass, $channel_list) = split /\s+/, $params, 4;
