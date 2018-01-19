@@ -3,7 +3,7 @@ package Bot::BasicBot::Pluggable::Module::Nagios;
 use warnings;
 use strict;
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 use base 'Bot::BasicBot::Pluggable::Module';
 
